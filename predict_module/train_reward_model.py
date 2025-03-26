@@ -1,24 +1,22 @@
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
 import evaluate
 import numpy as np
 import torch
 import torch.nn as nn
-from datasets import load_dataset
-from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_int8_training
+from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training
 from transformers import (
     AutoConfig,
     AutoModelForSequenceClassification,
     AutoTokenizer,
-    HfArgumentParser,
     PreTrainedTokenizerBase,
     Trainer,
     TrainingArguments,
 )
 from transformers.utils import PaddingStrategy
-from transformers import LlamaForCausalLM, LlamaTokenizer, LlamaForSequenceClassification, LlamaConfig
+from transformers import LlamaTokenizer, LlamaForSequenceClassification, LlamaConfig
 
 from predict_module import rm_dataloader
 
@@ -74,10 +72,10 @@ def train_reward_model(args):
         tokenizer = LlamaTokenizer.from_pretrained(script_args.reward_base_model)
         config = LlamaConfig.from_pretrained(script_args.reward_base_model)
     else:
-        tokenizer = AutoTokenizer.from_pretrained(script_args.reward_base_model, trust_remote_code=True)
+        LlamaConfig.from_pretrained(script_args.reward_base_model)
         config = AutoConfig.from_pretrained(script_args.reward_base_model, trust_remote_code=True)
 
-    # if "llama" in script_args.reward_base_model or "vicuna" in script_args.reward_base_model or "Vicuna" in script_args.reward_base_model:
+        AutoConfig.from_pretrained(script_args.reward_base_model, trust_remote_code=True)
     #     # required for llama
     #     tokenizer.add_special_tokens(
     #         {
@@ -119,9 +117,8 @@ def train_reward_model(args):
             device_map=device_map,
             trust_remote_code=True,
         )
-
-    model = prepare_model_for_int8_training(model)
-
+        
+    model = prepare_model_for_kbit_training(model)
     peft_config = LoraConfig(
         task_type=TaskType.SEQ_CLS,
         inference_mode=False,

@@ -1,5 +1,5 @@
 from peft import (
-    prepare_model_for_int8_training,
+    prepare_model_for_kbit_training,
     LoraConfig,
     get_peft_model,
     get_peft_model_state_dict,
@@ -100,13 +100,13 @@ def supervised_finetune(args):
             print(f"Checkpoint {checkpoint_name} not found")
 
         train_args_path = os.path.join(
-            resume_from_checkpoint, "trainer_state.json")
+            args.resume_from_supervised_checkpoint, "trainer_state.json")
 
         if os.path.exists(train_args_path):
             import json
             base_train_args = json.load(open(train_args_path, 'r'))
             base_max_steps = base_train_args["max_steps"]
-            resume_scale = base_max_steps / now_max_steps
+            # resume_scale = base_max_steps / now_max_steps
             if base_max_steps > now_max_steps:
                 warnings.warn("epoch {} replace to the base_max_steps {}".format(
                     EPOCHS, base_max_steps))
@@ -156,11 +156,12 @@ def supervised_finetune(args):
 
     old_state_dict = model.state_dict
     model.state_dict = (
-        lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
+        lambda self, *args, **kwargs: get_peft_model_state_dict(self, old_state_dict())
     ).__get__(model, type(model))
 
     if torch.__version__ >= "2" and sys.platform != "win32":
-        model = torch.compile(model)
+        if torch.__version__ >= "2" and sys.platform != "win32":
+            model = torch.compile(model)
 
     print("\n If there's a warning about missing keys above, please disregard :)")
 

@@ -1,17 +1,14 @@
-from dataclasses import dataclass, field
-from typing import Optional
-
 import torch
 from accelerate import Accelerator
 from datasets import load_dataset
-from peft import LoraConfig, prepare_model_for_int8_training
+from peft import LoraConfig, prepare_model_for_kbit_training
 from tqdm import tqdm
-from transformers import Adafactor, AutoTokenizer, HfArgumentParser, pipeline, BitsAndBytesConfig
-from transformers import LlamaTokenizer, LlamaConfig, LlamaForSequenceClassification, LlamaForCausalLM
+from transformers import Adafactor, AutoTokenizer, pipeline, BitsAndBytesConfig
+from transformers import LlamaTokenizer
 
-from trl import AutoModelForCausalLMWithValueHead, PPOConfig, PPOTrainer, set_seed
+from trl import AutoModelForCausalLMWithValueHead, PPOConfig, PPOTrainer
+from transformers import set_seed
 from trl.core import LengthSampler
-import os
 
 
 # DEFAULT_PAD_TOKEN = "[PAD]"
@@ -85,7 +82,7 @@ def tuning_lm_with_rl(args):
     ):
         """
         Build dataset for training. This builds the dataset from `load_dataset`, one should
-        customize this function to train the model on its own dataset.
+        tokenizer, dataset_name="lvwerra/stack-exchange-paired"
 
         Args:
             dataset_name (`str`):
@@ -145,11 +142,11 @@ def tuning_lm_with_rl(args):
 
     lora_config = LoraConfig(
         r=8, #16,
-        lora_alpha=16, #32,
         lora_dropout=0.05,
         bias="none",
         task_type="CAUSAL_LM",
     )
+    Accelerator().local_process_index
 
     model = AutoModelForCausalLMWithValueHead.from_pretrained(
         config.model_name,
